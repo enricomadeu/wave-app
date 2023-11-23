@@ -6,15 +6,21 @@ import {
 	TextInput,
 	TouchableOpacity,
 	KeyboardAvoidingView,
+	ActivityIndicator,
+	Alert,
 } from "react-native";
-import { router } from "expo-router";
+
+import { login } from "../../api/services/authService";
+import { requestLocationPermission } from "../../api/services/locationService";
 
 import { styles } from "../../Style";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const Login = ({ navigation }) => {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [error, setError] = useState("");
+	const [loading, setLoading] = useState(false);
 
 	const handleEmailChange = (text) => {
 		setEmail(text);
@@ -24,11 +30,20 @@ export const Login = ({ navigation }) => {
 		setPassword(text);
 	};
 
-	const handleSubmit = () => {
+	const handleSubmit = async () => {
 		if (!email || !password) {
 			setError("Por favor, preencha todos os campos.");
 		} else {
-			navigation.navigate("Home");
+			setLoading(true);
+			const response = await login({ email, password });
+			if (!response) {
+				Alert.alert("Atenção", "Nenhum usuário encontrado com esses dados.");
+			} else {
+				await requestLocationPermission();
+				AsyncStorage.setItem("user", JSON.stringify(response.user));
+				navigation.navigate("Home");
+			}
+			setLoading(false);
 		}
 	};
 
@@ -62,8 +77,20 @@ export const Login = ({ navigation }) => {
 				value={password}
 				secureTextEntry={true}
 			/>
-			<TouchableOpacity style={styles.button} onPress={handleSubmit}>
-				<Text style={styles.buttonText}>Entrar</Text>
+			<TouchableOpacity
+				style={styles.button}
+				onPress={handleSubmit}
+				disabled={loading}
+			>
+				{loading ? (
+					<ActivityIndicator
+						style={styles.buttonText}
+						size="small"
+						color="#fff"
+					/>
+				) : (
+					<Text style={styles.buttonText}>Entrar</Text>
+				)}
 			</TouchableOpacity>
 			<View style={styles.signupContainer}>
 				<Text style={styles.signupText}>Não tem cadastro?</Text>

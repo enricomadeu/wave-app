@@ -8,7 +8,7 @@ export const styles = StyleSheet.create({
 		backgroundColor: "#fff",
 	},
 	title: {
-		fontSize: 24,
+		fontSize: 36,
 		fontWeight: "bold",
 		marginBottom: 24,
 	},

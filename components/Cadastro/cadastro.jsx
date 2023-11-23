@@ -6,31 +6,65 @@ import {
 	TextInput,
 	TouchableOpacity,
 	KeyboardAvoidingView,
+	Alert,
+	ActivityIndicator,
 } from "react-native";
 import { CheckBox } from "react-native-elements";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { register } from "../../api/services/authService";
+import { requestLocationPermission } from "../../api/services/locationService";
 
 import { styles } from "../../Style";
 
 export const Cadastro = ({ navigation }) => {
 	const [firstName, setFirstName] = useState("");
 	const [lastName, setLastName] = useState("");
+	const [username, setUsername] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
 	const [error, setError] = useState("");
+	const [loading, setLoading] = useState(false);
 
-	const handleCadastro = () => {
+	const handleCadastro = async () => {
 		if (!firstName || !lastName || !email || !password || !confirmPassword) {
 			setError("Por favor, preencha todos os campos.");
 		} else if (password !== confirmPassword) {
 			setError("As senhas não coincidem.");
 		} else {
 			// Lógica para enviar o formulário de cadastro
-			console.log(`Nome: ${firstName} ${lastName}`);
-			console.log(`Email: ${email}`);
-			console.log(`Senha: ${password}`);
-			// navigation.navigate("Login");
+			setLoading(true);
+
+			await requestLocationPermission();
+
+			const latitude = await AsyncStorage.getItem("latitude");
+			const longitude = await AsyncStorage.getItem("longitude");
+
+			const user_location = {
+				latitude: +latitude,
+				longitude: +longitude,
+			};
+
+			const response = await register({
+				first_name: firstName,
+				last_name: lastName,
+				username,
+				email,
+				password,
+				user_location,
+			});
+
+			if (response) {
+				Alert.alert("Cadastro realizado com sucesso!");
+				navigation.navigate("Login");
+			} else {
+				Alert.alert("Erro", "Ocorreu um erro ao realizar o cadastro.");
+			}
+
+			setLoading(false);
 		}
 		// Aqui você pode adicionar a lógica para enviar os dados do cadastro para o servidor
 	};
@@ -71,6 +105,13 @@ export const Cadastro = ({ navigation }) => {
 			</View>
 			<TextInput
 				style={{ ...styles.input, width: "80%" }}
+				placeholder="Username"
+				value={username}
+				onChangeText={setUsername}
+				keyboardType="email-address"
+			/>
+			<TextInput
+				style={{ ...styles.input, width: "80%" }}
 				placeholder="Email"
 				value={email}
 				onChangeText={setEmail}
@@ -100,8 +141,20 @@ export const Cadastro = ({ navigation }) => {
 				containerStyle={styles.checkboxContainer}
 			/>
 
-			<TouchableOpacity style={styles.button} onPress={handleCadastro}>
-				<Text style={styles.buttonText}>Cadastrar</Text>
+			<TouchableOpacity
+				style={styles.button}
+				onPress={handleCadastro}
+				disabled={loading}
+			>
+				{loading ? (
+					<ActivityIndicator
+						style={styles.buttonText}
+						size="small"
+						color="#fff"
+					/>
+				) : (
+					<Text style={styles.buttonText}>Cadastrar</Text>
+				)}
 			</TouchableOpacity>
 			<View style={styles.signupContainer}>
 				<Text style={styles.signupText}>Já tem uma conta?</Text>
